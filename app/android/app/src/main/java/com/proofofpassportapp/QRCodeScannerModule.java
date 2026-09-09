@@ -27,7 +27,7 @@ import com.proofofpassportapp.utils.QrCodeDetectorProcessor;
 import com.proofofpassportapp.utils.PdfQrHelper;
 import com.tom_roush.pdfbox.pdmodel.PDDocument;
 import com.tom_roush.pdfbox.pdmodel.encryption.InvalidPasswordException;
-import example.jllarraz.com.passportreader.mlkit.FrameMetadata;
+// FrameMetadata removed — stubbed in fork build
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -242,7 +242,7 @@ public class QRCodeScannerModule extends ReactContextBaseJavaModule implements L
             QrCodeDetectorProcessor processor = new QrCodeDetectorProcessor();
             processor.detectQrCodeInBitmap(bitmap, new QrCodeDetectorProcessor.Listener() {
                 @Override
-                public void onSuccess(String results, FrameMetadata frameMetadata, long timeRequired, Bitmap bitmap) {
+                public void onSuccess(String results, Object frameMetadata, long timeRequired, Bitmap bitmap) {
                     if (photoLibraryPromise != null) {
                         photoLibraryPromise.resolve(results);
                         photoLibraryPromise = null;

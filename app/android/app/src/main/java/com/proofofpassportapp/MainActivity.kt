@@ -11,7 +11,6 @@ import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.fabricEnabled
 import com.facebook.react.defaults.DefaultReactActivityDelegate
-import io.tradle.nfc.RNPassportReaderModule
 
 class MainActivity : ReactActivity() {
   /**
@@ -30,13 +29,8 @@ class MainActivity : ReactActivity() {
   override fun onNewIntent(intent: Intent) {
     super.onNewIntent(intent)
     Log.d("MAIN_ACTIVITY", "onNewIntent: " + intent.action)
-    try {
-      RNPassportReaderModule.getInstance().receiveIntent(intent)
-    } catch (e: IllegalStateException) {
-      // Module not initialized yet (React context not ready). Ignore safely.
-      Log.w("MAIN_ACTIVITY", "RNPassportReaderModule not ready; deferring NFC intent")
-      setIntent(intent)
-    }
+    // RNPassportReaderModule removed — not available in fork build
+    setIntent(intent)
   }
 
   override fun onCreate(savedInstanceState: Bundle?) {

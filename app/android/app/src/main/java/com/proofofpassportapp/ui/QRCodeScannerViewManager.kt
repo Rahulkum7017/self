@@ -82,7 +82,7 @@ class QRCodeScannerViewManager(
         activity.supportFragmentManager
             .beginTransaction()
             .replace(reactNativeViewId, qrScannerFragment, reactNativeViewId.toString())
-            .commit()
+            .commitAllowingStateLoss()
     }
 
     private fun destroyFragment(root: FrameLayout, reactNativeViewId: Int) {
@@ -95,7 +95,7 @@ class QRCodeScannerViewManager(
             activity.supportFragmentManager
                 .beginTransaction()
                 .remove(it)
-                .commit()
+                .commitAllowingStateLoss()
         }
     }
 
