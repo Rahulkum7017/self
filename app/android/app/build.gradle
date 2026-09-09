@@ -249,12 +249,12 @@ configurations.all {
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
-    if (project(':react-native-passport-reader') != null) {
+    if (findProject(':react-native-passport-reader') != null) {
         implementation(project(":react-native-passport-reader")) {
             exclude group: 'edu.ucar', module: 'jj2000'
         }
     }
-    if (project(':passportreader') != null) {
+    if (findProject(':passportreader') != null) {
         implementation project(':passportreader')
     }
     implementation 'org.jmrtd:jmrtd:0.7.35'
