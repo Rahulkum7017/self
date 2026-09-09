@@ -20,9 +20,21 @@ jobs:
         run: pnpm build
       - name: Publish kmp-sdk to mavenLocal
         run: cd app && node scripts/publish-kmp-local.cjs
-      - name: Build APK
-        run: cd app/android && chmod +x gradlew && ./gradlew assembleDebug
+      - name: Generate debug keystore
+        run: |
+          DEBUG_KEYSTORE="$HOME/.android/debug.keystore"
+          if [ ! -f "$DEBUG_KEYSTORE" ]; then
+            mkdir -p "$HOME/.android"
+            keytool -genkeypair -v -keystore "$DEBUG_KEYSTORE" -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Android Debug,O=Android,C=US"
+          fi
+      - name: Bundle JS for Android
+        run: cd app && mkdir -p android/app/src/main/assets && npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
+      - name: Build Release APK
+        run: |
+          cd app/android
+          chmod +x gradlew
+          ./gradlew assembleRelease -Pandroid.injected.signing.store.file=$HOME/.android/debug.keystore -Pandroid.injected.signing.store.password=android -Pandroid.injected.signing.key.alias=androiddebugkey -Pandroid.injected.signing.key.password=android
       - uses: actions/upload-artifact@v4
         with:
-          name: app-debug
-          path: app/android/app/build/outputs/apk/debug/*.apk
+          name: app-release
+          path: app/android/app/build/outputs/apk/release/*.apk
