@@ -18,8 +18,8 @@ jobs:
         run: corepack enable && pnpm install --no-frozen-lockfile
       - name: Build workspace packages
         run: pnpm build
-      - name: Build SDK
-        run: pnpm --filter @selfxyz/mobile-sdk-alpha run build
+      - name: Publish kmp-sdk to mavenLocal
+        run: cd app && node scripts/publish-kmp-local.cjs
       - name: Build APK
         run: cd app/android && chmod +x gradlew && ./gradlew assembleDebug
       - uses: actions/upload-artifact@v4
