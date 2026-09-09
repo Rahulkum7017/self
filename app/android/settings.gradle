@@ -19,9 +19,21 @@ expoAutolinking.useExpoModules()
 
 include ':app'
 includeBuild('../../node_modules/@react-native/gradle-plugin')
-include ':react-native-passport-reader'
-project(':react-native-passport-reader').projectDir = new File(rootProject.projectDir, './react-native-passport-reader/android')
-include ':passportreader'
-project(':passportreader').projectDir = new File(rootProject.projectDir, './android-passport-nfc-reader/app')
-include ':mobile-sdk-alpha'
-project(':mobile-sdk-alpha').projectDir = new File(rootProject.projectDir, '../../packages/mobile-sdk-alpha/android')
+
+def passportReaderDir = new File(rootProject.projectDir, './react-native-passport-reader/android')
+if (passportReaderDir.exists()) {
+  include ':react-native-passport-reader'
+  project(':react-native-passport-reader').projectDir = passportReaderDir
+}
+
+def nfcReaderDir = new File(rootProject.projectDir, './android-passport-nfc-reader/app')
+if (nfcReaderDir.exists()) {
+  include ':passportreader'
+  project(':passportreader').projectDir = nfcReaderDir
+}
+
+def sdkDir = new File(rootProject.projectDir, '../../packages/mobile-sdk-alpha/android')
+if (sdkDir.exists()) {
+  include ':mobile-sdk-alpha'
+  project(':mobile-sdk-alpha').projectDir = sdkDir
+}
