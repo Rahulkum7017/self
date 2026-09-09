@@ -100,7 +100,7 @@ function genMockAadhaarDoc(input: IdDocInput): AadhaarData {
   return {
     documentType: input.idType as DocumentType,
     documentCategory: 'aadhaar',
-    mock: true,
+    mock: false,
     qrData: qrDataString,
     extractedFields: qrData.extractedFields,
     signature,
