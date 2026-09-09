@@ -6,6 +6,7 @@ const diditE2EBypassEnabled = process.env.DIDIT_E2E_BYPASS === 'true';
 
 const dependencies = {
   '@selfxyz/mobile-sdk-alpha': { platforms: { android: null, ios: null } },
+  'react-native-passport-reader': { platforms: { android: null, ios: null } },
   ...(diditE2EBypassEnabled
     ? {
         // Debug-only bypass: disables Didit native module autolinking.
