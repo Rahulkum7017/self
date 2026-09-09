@@ -100,7 +100,8 @@ function genMockAadhaarDoc(input: IdDocInput): AadhaarData {
   return {
     documentType: input.idType as DocumentType,
     documentCategory: 'aadhaar',
-    mock: false,
+    // Keep the mock flag so verification uses the staging/mock path.
+    mock: true,
     qrData: qrDataString,
     extractedFields: qrData.extractedFields,
     signature,

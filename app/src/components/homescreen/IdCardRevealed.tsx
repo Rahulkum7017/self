@@ -72,6 +72,8 @@ const IdCardRevealed: FC<IdCardRevealedProps> = ({ idDocument }) => {
   const docAttributes = getDocumentAttributes(idDocument);
   const nameData = getNameAndSurname(docAttributes.nameSlice);
 
+  const showDeveloperBadge = idDocument.mock && !isAadhaarDocument(idDocument);
+
   return (
     <YStack width="100%" alignItems="center" justifyContent="center">
       <YStack
@@ -134,7 +136,7 @@ const IdCardRevealed: FC<IdCardRevealedProps> = ({ idDocument }) => {
             </YStack>
           </XStack>
           <XStack flex={1} justifyContent="flex-end">
-            {idDocument.mock && (
+            {showDeveloperBadge && (
               <YStack
                 marginTop={revealedPadding / 4}
                 borderWidth={1}
@@ -208,7 +210,7 @@ const IdCardRevealed: FC<IdCardRevealedProps> = ({ idDocument }) => {
               <YStack flex={1}>
                 <IdAttribute
                   name="CODE"
-                  value={idDocument.mock ? 'SELF DEV' : 'SELF ID'}
+                  value={showDeveloperBadge ? 'SELF DEV' : 'SELF ID'}
                 />
               </YStack>
               <YStack flex={1}>

@@ -136,7 +136,9 @@ const IdCardLayout: FC<IdCardLayoutAttributes> = ({
     fontSize,
   } = useCardDimensions(selected);
 
-  const isMockDocument = Boolean(idDocument?.mock);
+  // Mock Aadhaar must remain marked as mock internally so its staging
+  // verification path works, but it uses the normal verified card treatment.
+  const isMockDocument = Boolean(idDocument?.mock) && !isAadhaarDocument(idDocument);
   const idType = useMemo(
     () =>
       idDocument && !isMockDocument
