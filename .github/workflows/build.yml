@@ -12,11 +12,17 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-      - run: corepack enable && pnpm install --no-frozen-lockfile
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Install dependencies
+        run: corepack enable && pnpm install --no-frozen-lockfile
+      - name: Build workspace packages
+        run: pnpm build
+      - name: Build SDK
+        run: pnpm --filter @selfxyz/mobile-sdk-alpha run build
       - name: Build APK
-        run: cd app && npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle
-      - run: cd app/android && ./gradlew assembleRelease
+        run: cd app/android && chmod +x gradlew && ./gradlew assembleDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: app-release
-          path: app/android/app/build/outputs/apk/release/*.apk
+          name: app-debug
+          path: app/android/app/build/outputs/apk/debug/*.apk
