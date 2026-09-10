@@ -4,10 +4,7 @@
 
 export const KYC_PROVIDER = 'didit';
 
-// TODO: temporary kill switch. Flip back to true to restore the third-party
-// (Didit) verification path: ID picker entry, trouble-screen fallbacks, the
-// chip-symbol "No" path and the cancel-flow fallback modal. In-flight sessions
-// (pending store, result notifications) keep resolving regardless.
-export const KYC_FLOW_ENABLED = false;
+// KYC flow enabled for fork build
+export const KYC_FLOW_ENABLED = true;
 
 export const isKycFlowEnabled = (): boolean => KYC_FLOW_ENABLED;
