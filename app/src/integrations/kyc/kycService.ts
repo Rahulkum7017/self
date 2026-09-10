@@ -25,7 +25,9 @@ const FETCH_TIMEOUT_MS = 30000;
 export const createKycSession = async (
   expectedDetails?: KycExpectedDetails,
 ): Promise<SessionResponse> => {
-  const apiUrl = KYC_TEE_URL;
+  // Fork/CI builds ship without app/.env, so the Babel dotenv plugin injects
+  // KYC_TEE_URL as undefined. Fall back to production (matches webview-app).
+  const apiUrl = KYC_TEE_URL || 'https://kyc.self.xyz';
   console.log('[Didit] createSession URL:', apiUrl);
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);

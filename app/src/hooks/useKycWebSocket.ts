@@ -97,8 +97,10 @@ export function useKycWebSocket(options: UseKycWebSocketOptions = {}) {
       }
       subscribedSessionIdsRef.current.add(sessionId);
 
-      console.log('[KycWebSocket] Connecting to WebSocket:', KYC_TEE_URL);
-      const socket = io(KYC_TEE_URL, {
+      // Same .env-less fallback as kycService (see comment there).
+      const kycUrl = KYC_TEE_URL || 'https://kyc.self.xyz';
+      console.log('[KycWebSocket] Connecting to WebSocket:', kycUrl);
+      const socket = io(kycUrl, {
         transports: ['websocket', 'polling'],
       });
 
