@@ -4,7 +4,6 @@
 
 import { useEffect, useState } from 'react';
 import { Linking } from 'react-native';
-import { checkVersion } from 'react-native-check-version';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
@@ -22,11 +21,13 @@ export const useAppUpdates = (): [boolean, () => void, boolean] => {
   const selfClient = useSelfClient();
 
   useEffect(() => {
-    checkVersion().then(version => {
-      if (version.needsUpdate) {
-        setNewVersionUrl(version.url);
-      }
-    });
+    // Fork builds are not distributed via Play Store; comparing against the
+    // official store version always reports a spurious "update available".
+    // checkVersion().then(version => {
+    //   if (version.needsUpdate) {
+    //     setNewVersionUrl(version.url);
+    //   }
+    // });
   }, []);
 
   const showAppUpdateModal = () => {
