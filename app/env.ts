@@ -28,7 +28,7 @@ export const GRAFANA_LOKI_USERNAME = process.env.GRAFANA_LOKI_USERNAME;
  */
 export const IS_TEST_BUILD = process.env.IS_TEST_BUILD === 'true';
 
-export const KYC_TEE_URL = process.env.KYC_TEE_URL || 'http://localhost:8080';
+export const KYC_TEE_URL = process.env.KYC_TEE_URL || 'https://kyc.self.xyz';
 export const MIXPANEL_NFC_PROJECT_TOKEN = undefined;
 export const SEGMENT_KEY = process.env.SEGMENT_KEY;
 export const SENTRY_DSN = process.env.SENTRY_DSN;
