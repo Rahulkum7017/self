@@ -8,9 +8,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 12.3.4
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -21,7 +18,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ~/.pnpm-store
+            ~/.local/share/pnpm/store
             node_modules/.pnpm
             node_modules
           key: pnpm-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('**/package.json') }}
@@ -29,7 +26,7 @@ jobs:
             pnpm-${{ hashFiles('pnpm-lock.yaml') }}-
             pnpm-
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: corepack enable && pnpm install --no-frozen-lockfile
       - name: Build workspace packages
         run: pnpm build
       - name: Publish kmp-sdk to mavenLocal
