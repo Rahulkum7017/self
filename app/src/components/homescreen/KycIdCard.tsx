@@ -330,7 +330,7 @@ const KycIdCard: FC<KycIdCardProps> = ({ idDocument, selected, hidden }) => {
               bottomLabel={bottomLabel}
               badges={[
                 {
-                  text: 'STANDARD',
+                  text: 'QR verified',
                   backgroundColor: 'rgba(0, 0, 0, 0.5)',
                   textColor: white,
                 },
