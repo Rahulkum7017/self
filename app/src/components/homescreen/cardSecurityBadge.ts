@@ -43,7 +43,8 @@ export function getSecurityLevel(
   document: PassportData | AadhaarData,
   options: SecurityLevelOptions = {},
 ): SecurityLevel {
-  if (options.mock) {
+  // Mock Aadhaar is treated as real Aadhaar for security level display
+  if (options.mock && !isAadhaarDocument(document)) {
     return 'LOW-SECURITY';
   }
 

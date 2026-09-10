@@ -114,7 +114,7 @@ function getDocumentDisplayName(
       ? `${mockPrefix}${countryCode} ${base}`
       : `${mockPrefix}${base}`;
   } else if (category === 'aadhaar') {
-    return isMock ? 'Dev Aadhaar ID' : 'Aadhaar ID';
+    return 'Aadhaar ID';
   } else if (category === 'kyc') {
     const idLabel = metadata.idType || 'Verified ID';
     return isMock ? `Dev ${idLabel}` : idLabel;
@@ -161,7 +161,8 @@ function determineDocumentState(
   }
 
   // UI-specific state mapping: Mock documents are selectable but marked as developer/mock
-  if (metadata.mock) {
+  // Mock Aadhaar is treated as verified for display purposes
+  if (metadata.mock && metadata.documentCategory !== 'aadhaar') {
     return 'mock';
   }
 
@@ -312,7 +313,7 @@ const DocumentSelectorForProvingScreen: React.FC = () => {
             if (!eligibility.eligible) {
               ineligibleMap[metadata.id] =
                 eligibility.reason ?? 'unsupported_id_type';
-            } else if (!metadata.mock) {
+            } else if (!metadata.mock || metadata.documentCategory === 'aadhaar') {
               const idTypeCode = idTypeForDocumentCategory(
                 metadata.documentCategory,
               );
@@ -336,10 +337,10 @@ const DocumentSelectorForProvingScreen: React.FC = () => {
             state: itemState,
             idType: metadata.documentCategory,
             nationalityCode: getNationalityCodeForDocument(docData?.data),
-            isMock: !!metadata.mock,
+            isMock: metadata.documentCategory === 'aadhaar' ? false : !!metadata.mock,
             securityLabel: getSecurityLabelForDocument(
               docData?.data,
-              !!metadata.mock,
+              metadata.documentCategory === 'aadhaar' ? false : !!metadata.mock,
             ),
           };
         })

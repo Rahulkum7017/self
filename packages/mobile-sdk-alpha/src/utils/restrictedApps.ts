@@ -55,7 +55,9 @@ export function isDocumentEligibleForPolicy(
   if (!policy.allowedCategories.includes(category)) {
     return false;
   }
-  if (isMock === true && !policy.allowMock) {
+  // Mock Aadhaar documents are treated as real for policy eligibility
+  // (mock flag is kept internally only for staging verification path)
+  if (isMock === true && !policy.allowMock && category !== 'aadhaar') {
     return false;
   }
   return true;
