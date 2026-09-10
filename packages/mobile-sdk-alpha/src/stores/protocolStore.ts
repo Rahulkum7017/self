@@ -581,8 +581,18 @@ export const useProtocolStore = create<ProtocolState>((set, get) => ({
         kyc: { ...get().kyc, circuits_dns_mapping: data.data },
       });
     },
-    fetch_public_keys: async (_environment: 'prod' | 'stg') => {
-      set({ kyc: { ...get().kyc, public_keys: null } });
+    fetch_public_keys: async (environment: 'prod' | 'stg') => {
+      // KYC shares the same DSC pubkey endpoint as Aadhaar — the no-op
+      // previously left public_keys as null, producing invalid register
+      // circuit inputs. Fetch the working Aadhaar endpoint instead.
+      const url = environment === 'prod' ? `${TREE_URL}/aadhaar-pubkeys` : `${TREE_URL_STAGING}/aadhaar-pubkeys`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP error fetching ${url}! status: ${response.status}`);
+      }
+      const responseText = await response.text();
+      const data = JSON.parse(responseText);
+      set({ kyc: { ...get().kyc, public_keys: data.data } });
     },
     fetch_identity_tree: async (environment: 'prod' | 'stg') => {
       const url = `${environment === 'prod' ? TREE_URL : TREE_URL_STAGING}/identity-kyc`;
