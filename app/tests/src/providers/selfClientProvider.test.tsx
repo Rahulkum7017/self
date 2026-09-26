@@ -190,7 +190,7 @@ describe('SelfClientProvider', () => {
     }
   });
 
-  it('consumes shouldBypassDocumentRegistrationCheck as a one-shot flag', () => {
+  it('always bypasses the document registration check (fork override)', () => {
     act(() => {
       useSettingStore.getState().armTestRegistrationCircuit();
     });
@@ -209,13 +209,14 @@ describe('SelfClientProvider', () => {
         }
       | undefined;
 
+    // The fork sets FORCE_BYPASS_DOCUMENT_REGISTRATION_CHECK, which short-circuits
+    // the one-shot store flag, so the bypass is sticky rather than consumed.
     expect(config?.devConfig?.shouldBypassDocumentRegistrationCheck?.()).toBe(
       true,
     );
     expect(config?.devConfig?.shouldBypassDocumentRegistrationCheck?.()).toBe(
-      false,
+      true,
     );
-    expect(useSettingStore.getState().testRegistrationCircuitArmed).toBe(false);
   });
 
   it('consumes shouldBypassDscRegistrationCheck as a one-shot flag', () => {

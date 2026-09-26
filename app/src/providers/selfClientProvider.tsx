@@ -87,22 +87,41 @@ function navigateIfReady<RouteName extends keyof RootStackParamList>(
   }
 }
 
+/**
+ * Fork-local override: always treat a freshly scanned document as unregistered.
+ *
+ * The SDK treats a document as "already claimed" via two client-side checks
+ * (see provingMachine.ts): the commitment lookup, and the nullifier lookup.
+ * The nullifier is derived from document data only and is independent of the
+ * secret, so once any registration for that ID has landed on-chain the
+ * nullifier stays there forever. Re-scanning the same ID with a different
+ * secret therefore always looks "registered under someone else's secret" and
+ * routes to AccountRecoveryChoice, which demands the existing recovery phrase.
+ *
+ * Both checks are client-side guards, not on-chain constraints, so bypassing
+ * them lets the same ID be registered again under a fresh secret. Set to false
+ * to restore stock behaviour.
+ */
+const FORCE_BYPASS_DOCUMENT_REGISTRATION_CHECK = true;
+
 export const SelfClientProvider = ({ children }: PropsWithChildren) => {
   const config = useMemo(
     () => ({
-      devConfig: IS_DEV_MODE
-        ? {
-            shouldTrigger: (errorType: string) => {
-              return useErrorInjectionStore
-                .getState()
-                .shouldTrigger(errorType as InjectedErrorType);
-            },
-            shouldBypassDocumentRegistrationCheck: () =>
-              useSettingStore.getState().consumeTestRegistrationCircuit(),
-            shouldBypassDscRegistrationCheck: () =>
-              useSettingStore.getState().consumeTestDscCircuit(),
+      devConfig: {
+        shouldTrigger: (errorType: string) => {
+          if (!IS_DEV_MODE) {
+            return false;
           }
-        : undefined,
+          return useErrorInjectionStore
+            .getState()
+            .shouldTrigger(errorType as InjectedErrorType);
+        },
+        shouldBypassDocumentRegistrationCheck: () =>
+          FORCE_BYPASS_DOCUMENT_REGISTRATION_CHECK ||
+          useSettingStore.getState().consumeTestRegistrationCircuit(),
+        shouldBypassDscRegistrationCheck: () =>
+          IS_DEV_MODE && useSettingStore.getState().consumeTestDscCircuit(),
+      },
     }),
     [],
   );
