@@ -55,20 +55,3 @@ jobs:
         with:
           name: app-release
           path: app/android/app/build/outputs/apk/release/*.apk
-      # Debug variant: __DEV__=true so console.* survives into logcat. Release
-      # builds strip JS console output entirely, which makes on-device
-      # diagnosis blind. E2E_BUILD=true sets debuggableVariants=[] so the JS
-      # bundle is embedded and the APK runs standalone without Metro.
-      - name: Bundle JS for Android (dev, for logcat diagnostics)
-        run: cd app && npx react-native bundle --platform android --dev true --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
-      - name: Build Debug APK
-        env:
-          E2E_BUILD: 'true'
-        run: |
-          cd app/android
-          chmod +x gradlew
-          ./gradlew assembleDebug -Pandroid.injected.signing.store.file=$HOME/.android/debug.keystore -Pandroid.injected.signing.store.password=android -Pandroid.injected.signing.key.alias=androiddebugkey -Pandroid.injected.signing.key.password=android
-      - uses: actions/upload-artifact@v4
-        with:
-          name: app-debug
-          path: app/android/app/build/outputs/apk/debug/*.apk
