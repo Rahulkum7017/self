@@ -146,12 +146,19 @@ export async function getAdaptiveSecurityConfig(
   capabilities?: SecurityCapabilities,
 ): Promise<AdaptiveSecurityConfig> {
   const caps = capabilities || (await detectSecurityCapabilities());
-  // Determine the best accessible setting
+
+  // The `accessible` value has to agree with `accessControl`, otherwise the
+  // write succeeds but every later read throws
+  // android.security.keystore.UserNotAuthenticatedException and the app can
+  // never read the catalog back. WHEN_PASSCODE_SET_THIS_DEVICE_ONLY binds the
+  // key to the device credential on Android, so it is only usable when
+  // authentication is actually requested via accessControl. When requireAuth is
+  // false we leave accessControl undefined, so we must also pick a storage that
+  // does not demand a prior unlock.
   let accessible: ACCESSIBLE;
-  if (caps.hasPasscode) {
+  if (requireAuth && caps.hasPasscode) {
     accessible = Keychain.ACCESSIBLE.WHEN_PASSCODE_SET_THIS_DEVICE_ONLY;
   } else {
-    // Fallback to device-only but less restrictive
     accessible = Keychain.ACCESSIBLE.WHEN_UNLOCKED_THIS_DEVICE_ONLY;
   }
 
