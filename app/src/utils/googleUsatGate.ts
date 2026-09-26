@@ -79,24 +79,43 @@ export async function evaluateGoogleUsatGate(
   }
 
   try {
+    // console.error so this survives release builds: this gate runs before
+    // ProvingScreenRouter and swallows failures with a fail-open `allow`, which
+    // hides the real reason a proof request cannot proceed.
+    console.error(
+      `[GATE] evaluating app=${app.appName} scope=${app.scope} chainID=${app.chainID}`,
+    );
+
     const catalog = context.catalog ?? (await selfClient.loadDocumentCatalog());
     const selectedDocumentId = catalog.selectedDocumentId;
-
-    if (!selectedDocumentId) {
-      return 'allow';
-    }
-
     const docs = context.docs ?? (await getAllDocuments(selfClient));
+    console.error(
+      `[GATE] catalogDocs=${
+        catalog.documents?.length ?? 0
+      } loadedDocs=${Object.keys(docs ?? {}).length} selected=${selectedDocumentId} registered=${JSON.stringify(
+        (catalog.documents ?? []).map(d => ({
+          id: d.id,
+          isRegistered: d.isRegistered,
+          mock: docs[d.id]?.data?.mock,
+          category: d.documentCategory,
+        })),
+      )}`,
+    );
     return evaluateGoogleUsatGateForDocument(
       selfClient,
       app,
       selectedDocumentId,
       docs,
     );
-  } catch {
+  } catch (error) {
     // Fail open: this gate is a UX guard, not a security boundary. Faucet
     // eligibility is enforced server-side. A transient local-storage failure
     // must not permanently block the proof session.
+    console.error(
+      `[GATE] threw, failing open: ${
+        error instanceof Error ? `${error.name}: ${error.message}` : String(error)
+      }`,
+    );
     return 'allow';
   }
 }

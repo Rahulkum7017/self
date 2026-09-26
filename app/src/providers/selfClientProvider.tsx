@@ -237,6 +237,12 @@ export const SelfClientProvider = ({ children }: PropsWithChildren) => {
     let currentCountryCode = '';
 
     addListener(SdkEvents.PROVING_PASSPORT_DATA_NOT_FOUND, () => {
+      // console.error so this survives release builds. This is one of two
+      // navigations to DocumentDataNotFound ("No document found"); the other is
+      // in ProvingScreenRouter. Log which one fired.
+      console.error(
+        '[NAV] PROVING_PASSPORT_DATA_NOT_FOUND -> DocumentDataNotFound (proving machine could not load the selected document)',
+      );
       if (navigationRef.isReady()) {
         navigationRef.navigate('DocumentDataNotFound');
       }

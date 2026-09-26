@@ -184,7 +184,14 @@ export const handleUrl = async (selfClient: SelfClient, uri: string) => {
   if (selfAppStr) {
     try {
       const selfAppJson = JSON.parse(selfAppStr);
+      // console.error so this survives release builds — this is the entry point
+      // that runs before ProvingScreenRouter, and the gate result here decides
+      // whether the user ever reaches the document list.
+      console.error(
+        `[DEEPLINK] app=${selfAppJson.appName} scope=${selfAppJson.scope} chainID=${selfAppJson.chainID}`,
+      );
       const gate = await evaluateGoogleUsatEntryGate(selfClient, selfAppJson);
+      console.error(`[DEEPLINK] googleUsatEntryGate=${gate}`);
       if (gate === 'block') {
         selfClient.trackEvent(ProofEvents.GOOGLE_USAT_BLOCKED, {
           entry_point: 'deeplink',

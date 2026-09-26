@@ -118,14 +118,26 @@ export const getAllDocuments = async (
  * @returns True if there are any valid registered documents, false otherwise.
  */
 export const hasAnyValidRegisteredDocument = async (client: SelfClient): Promise<boolean> => {
-  console.log('Checking if there are any valid registered documents');
+  // console.error so this survives release builds — the DocumentDataNotFound
+  // "Continue" button branches on this, and the original console.log was
+  // stripped in release so the branch was unobservable.
+  console.error('[HASREG] checking for any valid registered document');
 
   try {
     const catalog = await client.loadDocumentCatalog();
-
-    return catalog.documents.some(doc => doc.isRegistered === true);
+    const has = catalog.documents.some(doc => doc.isRegistered === true);
+    console.error(
+      `[HASREG] docs=${catalog.documents?.length ?? 0} hasRegistered=${has} registered=${JSON.stringify(
+        catalog.documents?.map(d => ({ id: d.id, isRegistered: d.isRegistered })) ?? [],
+      )}`,
+    );
+    return has;
   } catch (error) {
-    console.error('Error loading document catalog:', error);
+    console.error(
+      `[HASREG] error loading document catalog: ${
+        error instanceof Error ? `${error.name}: ${error.message}` : String(error)
+      }`,
+    );
     return false;
   }
 };
@@ -137,34 +149,45 @@ export const loadSelectedDocument = async (
   metadata: DocumentMetadata;
 } | null> => {
   const catalog = await selfClient.loadDocumentCatalog();
-  console.log('Catalog loaded');
+  // console.error so this survives release builds. A null return here raises
+  // PROVING_PASSPORT_DATA_NOT_FOUND, which the app turns into "No document
+  // found" — the individual console.log reasons below were invisible in release.
+  console.error(
+    `[SELECTED] catalog loaded docs=${catalog?.documents?.length ?? 0} selected=${catalog?.selectedDocumentId ?? 'none'} registered=${JSON.stringify(
+      catalog?.documents?.map(d => ({ id: d.id, isRegistered: d.isRegistered })) ?? [],
+    )}`,
+  );
 
   if (!catalog.selectedDocumentId) {
-    console.log('No selectedDocumentId found');
+    console.error('[SELECTED] no selectedDocumentId found');
     if (catalog.documents.length > 0) {
-      console.log('Using first document as fallback');
+      console.error('[SELECTED] using first document as fallback');
       catalog.selectedDocumentId = catalog.documents[0].id;
 
       await selfClient.saveDocumentCatalog(catalog);
     } else {
-      console.log('No documents in catalog, returning null');
+      console.error('[SELECTED] no documents in catalog, returning null');
       return null;
     }
   }
 
   const metadata = catalog.documents.find(d => d.id === catalog.selectedDocumentId);
   if (!metadata) {
-    console.log('Metadata not found for selectedDocumentId:', catalog.selectedDocumentId);
+    console.error(
+      `[SELECTED] metadata not found for selectedDocumentId=${catalog.selectedDocumentId}`,
+    );
     return null;
   }
 
   const data = await selfClient.loadDocumentById(catalog.selectedDocumentId);
   if (!data) {
-    console.log('Document data not found for id:', catalog.selectedDocumentId);
+    console.error(
+      `[SELECTED] document data not found for id=${catalog.selectedDocumentId}`,
+    );
     return null;
   }
 
-  console.log('Successfully loaded document:', metadata.documentType);
+  console.error(`[SELECTED] loaded document: ${metadata.documentType}`);
   return { data, metadata };
 };
 

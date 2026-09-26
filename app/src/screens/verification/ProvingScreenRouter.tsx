@@ -91,8 +91,14 @@ const ProvingScreenRouter: React.FC = () => {
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
+    // console.error so this survives release builds. The "No document found"
+    // screen was reachable without ever logging the catalog, which made it
+    // impossible to tell an early return apart from an empty catalog.
+    console.error(`[ROUTER] loadAndRoute start entryPoint=${entryPoint}`);
+
     // Prevent double routing
     if (hasRoutedRef.current) {
+      console.error(`[ROUTER] early return: already routed (entryPoint=${entryPoint})`);
       return;
     }
 
@@ -100,6 +106,9 @@ const ProvingScreenRouter: React.FC = () => {
     // websocket. Wait for it before evaluating the Google USAT gate so we don't
     // navigate past the gate prematurely.
     if (!selfApp) {
+      console.error(
+        `[ROUTER] early return: selfApp not ready yet (entryPoint=${entryPoint})`,
+      );
       return;
     }
 
@@ -201,6 +210,9 @@ const ProvingScreenRouter: React.FC = () => {
       // Route based on document availability and skip settings
       if (validCount === 0) {
         // No valid documents - redirect to onboarding
+        console.error(
+          `[ROUTER] validCount=0 -> DocumentDataNotFound (entryPoint=${entryPoint})`,
+        );
         navigation.replace('DocumentDataNotFound');
         return;
       }
