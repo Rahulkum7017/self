@@ -537,17 +537,21 @@ describe('PassportDataProvider', () => {
       expect(result).toEqual({ documents: [] });
     });
 
-    it('should return empty catalog when native modules are not ready', async () => {
-      // Since nativeModulesReady is a module-level variable, we can't easily mock it
-      // The function will return empty catalog when native modules are not ready
+    it('should still read the catalog when native modules are not ready', async () => {
+      // nativeModulesReady is a module-level flag set during SplashScreen init,
+      // not a precondition for the Keychain module being usable. Gating the read
+      // on it made the app report "No document found" for stored documents when
+      // a deeplink arrived before/without Splash init.
       mockKeychain.getGenericPassword = jest.fn().mockResolvedValue({
         password: JSON.stringify({ documents: [{ id: 'test' }] }),
       });
 
       const result = await loadDocumentCatalogDirectlyFromKeychain();
 
-      // The function should return empty catalog due to nativeModulesReady check
-      expect(result).toEqual({ documents: [] });
+      expect(result).toEqual({ documents: [{ id: 'test' }] });
+      expect(mockKeychain.getGenericPassword).toHaveBeenCalledWith({
+        service: 'documentCatalog',
+      });
     });
 
     it('should return parsed catalog when it exists and native modules are ready', async () => {

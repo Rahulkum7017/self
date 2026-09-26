@@ -567,12 +567,13 @@ export async function loadDocumentByIdDirectlyFromKeychain(
   documentId: string,
 ): Promise<PassportData | null> {
   try {
-    // Check if native modules are ready
+    // Same reasoning as loadDocumentCatalogDirectlyFromKeychain: the readiness
+    // flag is a startup hint, not a precondition. Returning null here made the
+    // prover report "no selected document" for documents that are present.
     if (!nativeModulesReady) {
       console.warn(
-        `Native modules not ready for loading document ${documentId}, returning null`,
+        `Native modules readiness not confirmed, attempting read of document ${documentId} anyway`,
       );
-      return null;
     }
 
     const documentCreds = await Keychain.getGenericPassword({
@@ -608,10 +609,16 @@ export async function loadDocumentCatalogDirectlyFromKeychain(): Promise<Documen
       return { documents: [] };
     }
 
-    // Check if native modules are ready (should be initialized at app startup)
+    // nativeModulesReady is only an optimisation hint set during SplashScreen
+    // startup. Treating it as a hard precondition made the catalog read return
+    // an empty list — which the UI surfaces as "No document found" — whenever a
+    // deeplink arrived before or without the Splash init having run. The
+    // Keychain module itself is available independently, so attempt the read
+    // and only log when the hint is not yet set.
     if (!nativeModulesReady) {
-      console.warn('Native modules not ready, returning empty catalog');
-      return { documents: [] };
+      console.warn(
+        'Native modules readiness not confirmed, attempting catalog read anyway',
+      );
     }
 
     const catalogCreds = await Keychain.getGenericPassword({
@@ -646,7 +653,9 @@ async function loadDocumentCatalogDirectlyFromKeychainForKycCount(): Promise<Doc
   }
 
   if (!nativeModulesReady) {
-    throw new Error('Native modules not ready');
+    console.warn(
+      'Native modules readiness not confirmed, counting via catalog read anyway',
+    );
   }
 
   const catalogCreds = await Keychain.getGenericPassword({
