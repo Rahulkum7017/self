@@ -14,6 +14,12 @@ jobs:
           java-version: 17
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # The action's default is "tools platform-tools", but Google removed the
+          # legacy "tools" package from the SDK repo — sdkmanager now exits 1 with
+          # "Failed to find package 'tools'". Licences are still accepted (that
+          # input defaults to true); we just no longer ask for the dead package.
+          packages: platform-tools
       - name: Cache pnpm store
         uses: actions/cache@v4
         with:
