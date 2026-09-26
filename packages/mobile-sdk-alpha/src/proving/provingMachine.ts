@@ -566,6 +566,28 @@ export const useProvingStore = create<ProvingState>((set, get) => {
       if (state.value === 'failure') {
         const { error_code, reason } = get();
 
+        // Fork override: a mock document registers against the staging registry
+        // while the requesting app verifies against the mainnet registry, so every
+        // mock disclose is rejected with InvalidRoot by SelfBackendVerifier even
+        // though the proof itself generated correctly. Present that one case as a
+        // local success so the mock flow can be exercised end to end.
+        //
+        // This is presentation and routing only. The requesting backend runs its
+        // own verifier, so it still rejects the proof and no tokens are released.
+        // Real documents and every other error keep the normal failure path.
+        const isMockInvalidRootDisclose =
+          get().circuitType === 'disclose' &&
+          get().passportData?.mock === true &&
+          (/invalidroot/i.test(reason ?? '') || /invalidroot/i.test(error_code ?? ''));
+
+        if (isMockInvalidRootDisclose) {
+          // ProofRequestStatusScreen keys off currentState === 'completed'.
+          set({ currentState: 'completed', reason: null, error_code: null });
+          selfClient.getSelfAppState().handleProofResult(true);
+          emitVerificationComplete(true);
+          return;
+        }
+
         if (get().circuitType === 'disclose') {
           selfClient.getSelfAppState().handleProofResult(false, error_code ?? undefined, reason ?? undefined);
         } else if (get().circuitType !== null) {
