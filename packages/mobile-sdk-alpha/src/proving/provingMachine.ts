@@ -335,7 +335,14 @@ const provingMachine = createMachine({
         PROVE_SUCCESS: 'post_proving',
         PROVE_ERROR: 'error',
         PROVE_FAILURE: 'failure',
-        PROVE_ALREADY_REGISTERED: 'account_recovery_choice',
+        // Fork override: the TEE replies REGISTERED_COMMITMENT when the commitment
+        // we just proved is already on-chain. That is the account being live, not
+        // a stranger's ID, so finish the register flow (post_proving → completed →
+        // AccountVerifiedSuccess) instead of demanding the recovery phrase.
+        // Enforcing "this secret owns this commitment" stays in the crypto layer:
+        // a wrong secret yields a different commitment, which fails the disclose
+        // circuit. This only affects routing.
+        PROVE_ALREADY_REGISTERED: 'post_proving',
       },
     },
     post_proving: {
