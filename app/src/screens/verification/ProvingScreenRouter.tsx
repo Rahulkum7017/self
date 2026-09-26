@@ -130,6 +130,15 @@ const ProvingScreenRouter: React.FC = () => {
         return isDocumentValidForProving(doc, docData?.data);
       });
       const validCount = validDocuments.length;
+      // console.error so it survives release builds — this is the decision point
+      // behind the "No document found" screen and was otherwise invisible.
+      console.error(
+        `[ROUTER] entryPoint=${entryPoint} catalogDocs=${
+          catalog.documents?.length ?? 0
+        } loadedDocs=${Object.keys(docs ?? {}).length} validCount=${validCount} selected=${catalog.selectedDocumentId} registeredFlags=${JSON.stringify(
+          (catalog.documents ?? []).map(d => ({ id: d.id, isRegistered: d.isRegistered })),
+        )}`,
+      );
       const firstValidDoc = validDocuments[0];
       const documentType = getDocumentTypeName(
         firstValidDoc?.documentCategory,

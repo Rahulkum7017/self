@@ -139,23 +139,49 @@ function handleKeychainReadError({
 // These need to be declared early to avoid dependency issues
 const safeLoadDocumentCatalog = async (): Promise<DocumentCatalog> => {
   try {
-    return await loadDocumentCatalogDirectlyFromKeychain();
-  } catch (error) {
-    console.warn(
-      'Error in safeLoadDocumentCatalog, returning empty catalog:',
-      error,
+    const catalog = await loadDocumentCatalogDirectlyFromKeychain();
+    // console.error (not console.log) so this survives release builds, where
+    // console.log is stripped and the swallow below became invisible.
+    console.error(
+      `[CATALOG] loaded documents=${catalog?.documents?.length ?? 0} selected=${catalog?.selectedDocumentId ?? 'none'} registered=${JSON.stringify(
+        catalog?.documents?.map(d => ({ id: d.id, isRegistered: d.isRegistered })) ?? [],
+      )}`,
     );
+    return catalog;
+  } catch (error) {
+    const err = getKeychainErrorIdentity(error);
+    console.error(
+      `[CATALOG] safeLoadDocumentCatalog FAILED, returning empty catalog: ${
+        error instanceof Error ? `${error.name}: ${error.message}` : String(error)
+      }`,
+      { code: err?.code, name: err?.name },
+    );
+    captureException(error, {
+      module: 'passport-data-provider',
+      contextLabel: 'safeLoadDocumentCatalog',
+      errorCode: err?.code,
+      errorName: err?.name,
+    });
     return { documents: [] };
   }
 };
 
 const safeGetAllDocuments = async (selfClient: SelfClient) => {
   try {
-    return await getAllDocuments(selfClient);
+    const docs = await getAllDocuments(selfClient);
+    console.error(
+      `[CATALOG] getAllDocuments loaded=${
+        docs ? Object.keys(docs).length : 0
+      } ids=${JSON.stringify(docs ? Object.keys(docs) : [])}`,
+    );
+    return docs;
   } catch (error) {
-    console.warn(
-      'Error in safeGetAllDocuments, returning empty object:',
-      error,
+    const err = getKeychainErrorIdentity(error);
+    console.error(
+      `[CATALOG] safeGetAllDocuments FAILED, returning empty object: ${
+        error instanceof Error ? `${error.name}: ${error.message}` : String(error)
+      }`,
+      { code: err?.code, name: err?.name },
     );
     return {};
   }
