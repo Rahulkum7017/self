@@ -101,6 +101,7 @@ export interface ProtocolState {
   };
   aadhaar: {
     commitment_tree: any;
+    commitment_tree_error?: string | null;
     public_keys: string[] | null;
     deployed_circuits: DeployedCircuits | null;
     circuits_dns_mapping: any;
@@ -494,7 +495,12 @@ export const useProtocolStore = create<ProtocolState>((set, get) => ({
         const data = JSON.parse(responseText);
         set({ aadhaar: { ...get().aadhaar, commitment_tree: data.data } });
       } catch (error) {
+        // Fork: record the failure on the store instead of only logging it, so
+        // callers can tell "not registered" apart from "could not check". The
+        // proving machine needs that distinction: a swallowed fetch made every
+        // disclose look unregistered and surfaced as "No document found".
         console.error(`Failed fetching Aadhaar identity tree from ${url}:`, error);
+        set({ aadhaar: { ...get().aadhaar, commitment_tree_error: String(error) } });
       }
     },
     fetch_ofac_trees: async (environment: 'prod' | 'stg') => {

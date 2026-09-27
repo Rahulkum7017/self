@@ -1311,16 +1311,39 @@ export const useProvingStore = create<ProvingState>((set, get) => {
 
         /// disclosure
         if (circuitType === 'disclose') {
-          const isRegisteredWithLocalCSCA = await isUserRegistered(
-            passportData,
-            secret as string,
-            (documentCategory: DocumentCategory) => getCommitmentTree(selfClient, documentCategory),
-          );
+          const tree = getCommitmentTree(selfClient, passportData.documentCategory);
+          // Fork: the commitment-tree fetch swallows its own failures, so the
+          // local registration check below can fail for a reason that has
+          // nothing to do with the user's document, and the app used to answer
+          // that with "No document found". Only hard-fail when we actually have
+          // a tree to search and the commitment is absent from it. When the tree
+          // is unavailable the check is inconclusive, not negative, and the
+          // requesting backend is authoritative anyway — it verifies the proof
+          // itself, so let the flow continue and let the server decide.
+          const treeAvailable =
+            !!tree && (!Array.isArray(tree) || tree.length > 0);
+
+          const isRegisteredWithLocalCSCA = treeAvailable
+            ? await isUserRegistered(
+                passportData,
+                secret as string,
+                (documentCategory: DocumentCategory) =>
+                  getCommitmentTree(selfClient, documentCategory),
+              )
+            : false;
           selfClient.logProofEvent('info', 'Local CSCA registration check', context, {
             registered: isRegisteredWithLocalCSCA,
+            tree_available: treeAvailable,
           });
           if (isRegisteredWithLocalCSCA) {
             selfClient.logProofEvent('info', 'Validation succeeded', context, {
+              duration_ms: Date.now() - startTime,
+            });
+            actor!.send({ type: 'VALIDATION_SUCCESS' });
+            return;
+          } else if (!treeAvailable) {
+            // Inconclusive: proceed and let the verifier decide.
+            selfClient.logProofEvent('info', 'Commitment tree unavailable, proceeding', context, {
               duration_ms: Date.now() - startTime,
             });
             actor!.send({ type: 'VALIDATION_SUCCESS' });

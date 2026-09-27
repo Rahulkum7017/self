@@ -311,7 +311,22 @@ export async function isUserRegistered(
   }
 
   const serializedTree = getCommitmentTree(document);
-  const tree = LeanIMT.import((a, b) => poseidon2([a, b]), serializedTree);
+  // A missing or unparseable tree used to reach LeanIMT.import and throw, which
+  // the proving machine turned into PASSPORT_DATA_NOT_FOUND and the user saw as
+  // "No document found" — even though the document was present and registered.
+  // The tree fetch swallows its own failures (protocolStore.fetch_identity_tree),
+  // so commitment_tree is routinely null here. Treat that as "cannot verify"
+  // rather than "not registered" and let the caller's fallback decide.
+  if (!serializedTree || (Array.isArray(serializedTree) && serializedTree.length === 0)) {
+    return false;
+  }
+  let tree;
+  try {
+    tree = LeanIMT.import((a, b) => poseidon2([a, b]), serializedTree);
+  } catch (e) {
+    console.warn('Failed to import commitment tree:', e);
+    return false;
+  }
   const index = tree.indexOf(BigInt(commitment));
   return index !== -1;
 }
