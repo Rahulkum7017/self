@@ -15,7 +15,7 @@ import type {
   DocumentCatalog,
   DocumentMetadata,
 } from '@selfxyz/common/utils/types';
-import { useSelfClient } from '@selfxyz/mobile-sdk-alpha';
+import { useSelfClient, useProvingStore } from '@selfxyz/mobile-sdk-alpha';
 import {
   ButtonsContainer,
   PrimaryButton,
@@ -32,7 +32,6 @@ import useHasRealDocument from '@/hooks/useHasRealDocument';
 import { impactLight } from '@/integrations/haptics';
 import { loadDocumentCatalogDirectlyFromKeychain } from '@/providers/passportDataProvider';
 import { createKeychainOptions } from '@/integrations/keychain';
-import { useProvingStore } from '@selfxyz/mobile-sdk-alpha/stores/provingMachine';
 import type { RootStackParamList } from '@/navigation';
 import { usePassport } from '@/providers/passportDataProvider';
 import { extraYPadding } from '@/utils/styleUtils';

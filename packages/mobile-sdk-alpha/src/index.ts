@@ -66,6 +66,10 @@ export type { Perk, PerkRailContent } from './flows/onboarding/perks';
 export type { PerkId, PerkRecord } from './data/perks';
 
 export type { ProvingStateType } from './proving/provingMachine';
+// Fork: exposed so the app can surface proving state on screen. Release builds
+// strip console output, so the store is the only readable channel for
+// diagnosing where a proof stopped.
+export { useProvingStore } from './proving/provingMachine';
 
 export type { RecoveryValidationResult } from './proving/recoveryValidation';
 
