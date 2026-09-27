@@ -594,6 +594,16 @@ export async function loadDocumentByIdDirectlyFromKeychain(
     if (documentCreds !== false) {
       return JSON.parse(documentCreds.password);
     }
+
+    // Same `false`-means-unreadable handling as the catalog.
+    try {
+      await Keychain.resetGenericPassword({ service: `document-${documentId}` });
+      console.warn(
+        `Document ${documentId} read as no-entry; dropped so the next save rewrites it`,
+      );
+    } catch {
+      // best effort
+    }
   } catch (error) {
     // Same reasoning as the catalog: an entry we cannot read is unusable, and
     // the document is re-creatable by scanning again, so drop it rather than
@@ -657,6 +667,20 @@ export async function loadDocumentCatalogDirectlyFromKeychain(): Promise<Documen
       console.log('Successfully loaded document catalog from keychain');
 
       return parsed;
+    }
+
+    // Fork: react-native-keychain swallows the native keystore failure and
+    // resolves to `false` instead of rejecting, so the catch below never runs
+    // for this case — which is exactly how an unreadable catalog ends up
+    // looking like an empty one. Drop the entry so the next save recreates it
+    // with the current (software-backed, non-auth) options.
+    try {
+      await Keychain.resetGenericPassword({ service: 'documentCatalog' });
+      console.warn(
+        'documentCatalog read as no-entry; dropped so the next save rewrites it',
+      );
+    } catch {
+      // best effort
     }
   } catch (error) {
     // Fork: drop the entry on *any* read failure, not just one we recognise as

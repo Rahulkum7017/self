@@ -91,8 +91,18 @@ export async function createKeychainOptions(
     capabilities,
   );
 
-  const useStrongBox =
-    options.useStrongBox ?? useSettingStore.getState().useStrongBox;
+  // Fork: the non-auth path (document catalog and payloads) must not be written
+  // with a hardware-backed key. On this device those entries write fine and then
+  // read back as
+  //   android.security.keystore.UserNotAuthenticatedException
+  // from the hardware keystore, which react-native-keychain turns into a
+  // "no entry" result rather than a throw — so the catalog silently became empty
+  // and every proof request reported "No document found". Software-backed keys
+  // round-trip reliably. The mnemonic still uses requireAuth: true and is
+  // deliberately left on the secure path.
+  const useStrongBox = options.requireAuth
+    ? (options.useStrongBox ?? useSettingStore.getState().useStrongBox)
+    : false;
 
   const setOptions: ExtendedSetOptions = {
     accessible: config.accessible,
@@ -162,9 +172,15 @@ export async function getAdaptiveSecurityConfig(
     accessible = Keychain.ACCESSIBLE.WHEN_UNLOCKED_THIS_DEVICE_ONLY;
   }
 
-  // Determine the best security level (Android)
+  // Determine the best security level (Android).
+  // Fork: the non-auth path stays on software-backed keys — see the
+  // useStrongBox note in createKeychainOptions. Requesting SECURE_HARDWARE for
+  // entries that are later read without authentication produced
+  // UserNotAuthenticatedException on the hardware keystore.
   let securityLevel: SECURITY_LEVEL;
-  if (caps.hasSecureHardware) {
+  if (!requireAuth) {
+    securityLevel = Keychain.SECURITY_LEVEL.SECURE_SOFTWARE;
+  } else if (caps.hasSecureHardware) {
     securityLevel = Keychain.SECURITY_LEVEL.SECURE_HARDWARE;
   } else if (
     caps.maxSecurityLevel === Keychain.SECURITY_LEVEL.SECURE_SOFTWARE
