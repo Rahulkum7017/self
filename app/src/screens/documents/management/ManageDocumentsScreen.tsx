@@ -443,8 +443,27 @@ const ManageDocumentsScreen: React.FC = () => {
       const err = e as { message?: string };
       out.push('catalog THREW: ' + String(err?.message));
     }
+    // Fork: the app-level adapter read succeeds, yet a proof request still lands
+    // on "No document found", so probe the SDK path the prover actually uses.
+    try {
+      const sdkCatalog = await selfClient.loadDocumentCatalog();
+      out.push(
+        'sdk catalog: docs=' +
+          sdkCatalog?.documents?.length +
+          ' selected=' +
+          String(sdkCatalog?.selectedDocumentId),
+      );
+      const id = sdkCatalog?.selectedDocumentId;
+      if (id) {
+        const byId = await selfClient.loadDocumentById(id);
+        out.push('sdk loadDocumentById: ' + (byId ? 'OK' : 'NULL'));
+      }
+    } catch (e) {
+      const err = e as { message?: string };
+      out.push('sdk THREW: ' + String(err?.message));
+    }
     setKcDiag(out.join('  ||  '));
-  }, []);
+  }, [selfClient]);
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { bottom } = useSafeAreaInsets();
