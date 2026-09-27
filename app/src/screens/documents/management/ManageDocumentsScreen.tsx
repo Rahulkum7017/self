@@ -401,6 +401,11 @@ const PassportDataSelector = () => {
 };
 
 const ManageDocumentsScreen: React.FC = () => {
+  // Fork: the keychain diagnostic probes the SDK read path, which needs the
+  // client object itself rather than just trackEvent. The other selfClient in
+  // this file belongs to PassportDataSelector and is not in scope here. Declared
+  // before runKeychainDiag so its dependency array is not in the TDZ.
+  const selfClientForDiag = useSelfClient();
   const [kcDiag, setKcDiag] = useState<string>('not run yet');
   const runKeychainDiag = useCallback(async () => {
     const out: string[] = [];
@@ -445,17 +450,18 @@ const ManageDocumentsScreen: React.FC = () => {
     }
     // Fork: the app-level adapter read succeeds, yet a proof request still lands
     // on "No document found", so probe the SDK path the prover actually uses.
+    out.push('sdk: start');
     try {
-      const sdkCatalog = await selfClient.loadDocumentCatalog();
+      const sdkCatalog = await selfClientForDiag.loadDocumentCatalog();
       out.push(
         'sdk catalog: docs=' +
-          sdkCatalog?.documents?.length +
+          String(sdkCatalog?.documents?.length) +
           ' selected=' +
           String(sdkCatalog?.selectedDocumentId),
       );
       const id = sdkCatalog?.selectedDocumentId;
       if (id) {
-        const byId = await selfClient.loadDocumentById(id);
+        const byId = await selfClientForDiag.loadDocumentById(id);
         out.push('sdk loadDocumentById: ' + (byId ? 'OK' : 'NULL'));
       }
     } catch (e) {
@@ -463,7 +469,7 @@ const ManageDocumentsScreen: React.FC = () => {
       out.push('sdk THREW: ' + String(err?.message));
     }
     setKcDiag(out.join('  ||  '));
-  }, [selfClient]);
+  }, [selfClientForDiag]);
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { bottom } = useSafeAreaInsets();
