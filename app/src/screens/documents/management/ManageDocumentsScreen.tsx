@@ -493,13 +493,13 @@ const ManageDocumentsScreen: React.FC = () => {
               <SecondaryButton onPress={handleViewInfo}>
                 View Document Info
               </SecondaryButton>
+            )}
             <SecondaryButton onPress={runKeychainDiag}>
               Run keychain diagnostic
             </SecondaryButton>
             <Text fontSize={10} color={textBlack} opacity={0.85}>
               {kcDiag}
             </Text>
-            )}
             <SecondaryButton onPress={handleGenerateMock}>
               Generate Mock Document
             </SecondaryButton>
