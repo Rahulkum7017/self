@@ -583,6 +583,19 @@ export async function loadDocumentByIdDirectlyFromKeychain(
       return JSON.parse(documentCreds.password);
     }
   } catch (error) {
+    // Same self-healing as the catalog: an entry we cannot decrypt is dead
+    // weight, so drop it and let the next save recreate it with the current
+    // keychain options rather than retrying a key that can never be read.
+    if (isKeychainCryptoError(error)) {
+      try {
+        await Keychain.resetGenericPassword({ service: `document-${documentId}` });
+        console.warn(
+          `Dropped unreadable document entry ${documentId}; it will be rewritten on next save`,
+        );
+      } catch {
+        // best effort
+      }
+    }
     handleKeychainReadError({
       contextLabel: `document ${documentId}`,
       error,
@@ -636,6 +649,22 @@ export async function loadDocumentCatalogDirectlyFromKeychain(): Promise<Documen
       return parsed;
     }
   } catch (error) {
+    // Self-heal a key that Android will not decrypt for us. Every keychain read
+    // on this device failed with UserNotAuthenticatedException even though the
+    // catalog was written successfully and survived a restart, so the entry is
+    // backed by a key bound to a device credential that cannot be satisfied on
+    // the read path. The entry is unreadable either way, so drop it and let the
+    // next write create a fresh key under the current (non-auth) options.
+    if (isKeychainCryptoError(error)) {
+      try {
+        await Keychain.resetGenericPassword({ service: 'documentCatalog' });
+        console.warn(
+          'Dropped unreadable documentCatalog entry; it will be rewritten on next save',
+        );
+      } catch {
+        // best effort — fall through to the normal error handling
+      }
+    }
     handleKeychainReadError({
       contextLabel: 'document catalog',
       error,

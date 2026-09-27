@@ -31,7 +31,14 @@ export function isKeychainCryptoError(error: unknown): boolean {
       err?.message?.includes('Decryption failed') ||
       err?.message?.includes('Could not encrypt data') ||
       err?.message?.includes('Keystore operation failed') ||
-      err?.message?.includes('Authentication tag verification failed')) &&
+      err?.message?.includes('Authentication tag verification failed') ||
+      // Android rejects a cipher whose key is bound to a device credential that
+      // cannot be satisfied on this read. react-native-keychain surfaces it as
+      // UserNotAuthenticatedException rather than CryptoFailedException, and it
+      // is just as unrecoverable: the entry has to be dropped and rewritten.
+      err?.message?.includes('UserNotAuthenticatedException') ||
+      err?.message?.includes('User not authenticated') ||
+      err?.name?.includes('UserNotAuthenticatedException')) &&
     !isUserCancellation(error),
   );
 }
