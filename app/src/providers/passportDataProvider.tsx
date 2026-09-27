@@ -114,20 +114,32 @@ function handleKeychainReadError({
     }
   }
 
+  // Report every read failure to Sentry, not just the ones we can classify.
+  // Release builds strip JS console output entirely, so Sentry is the only
+  // channel that survives to tell us what the native layer actually threw.
+  try {
+    const err = getKeychainErrorIdentity(error);
+    captureException(
+      error instanceof Error ? error : new Error(String(error)),
+      {
+        module: 'passport-data-provider',
+        contextLabel: safeLabel,
+        errorCode: err?.code,
+        errorName: err?.name,
+        isCryptoError: isKeychainCryptoError(error),
+        rawMessage: error instanceof Error ? error.message : String(error),
+      },
+    );
+  } catch {
+    // never let reporting break the read path
+  }
+
   if (isKeychainCryptoError(error)) {
     const err = getKeychainErrorIdentity(error);
     console.error(`Keychain crypto error loading ${safeLabel}:`, {
       code: err?.code,
       name: err?.name,
     });
-    if (error instanceof Error) {
-      captureException(error, {
-        module: 'passport-data-provider',
-        contextLabel: safeLabel,
-        errorCode: err?.code,
-        errorName: err?.name,
-      });
-    }
 
     notifyKeychainFailure('crypto_failed');
   }
@@ -583,18 +595,16 @@ export async function loadDocumentByIdDirectlyFromKeychain(
       return JSON.parse(documentCreds.password);
     }
   } catch (error) {
-    // Same self-healing as the catalog: an entry we cannot decrypt is dead
-    // weight, so drop it and let the next save recreate it with the current
-    // keychain options rather than retrying a key that can never be read.
-    if (isKeychainCryptoError(error)) {
-      try {
-        await Keychain.resetGenericPassword({ service: `document-${documentId}` });
-        console.warn(
-          `Dropped unreadable document entry ${documentId}; it will be rewritten on next save`,
-        );
-      } catch {
-        // best effort
-      }
+    // Same reasoning as the catalog: an entry we cannot read is unusable, and
+    // the document is re-creatable by scanning again, so drop it rather than
+    // leaving a poisoned key that fails on every later load.
+    try {
+      await Keychain.resetGenericPassword({ service: `document-${documentId}` });
+      console.warn(
+        `Dropped unreadable document entry ${documentId}; it will be rewritten on next save`,
+      );
+    } catch {
+      // best effort
     }
     handleKeychainReadError({
       contextLabel: `document ${documentId}`,
@@ -649,21 +659,21 @@ export async function loadDocumentCatalogDirectlyFromKeychain(): Promise<Documen
       return parsed;
     }
   } catch (error) {
-    // Self-heal a key that Android will not decrypt for us. Every keychain read
-    // on this device failed with UserNotAuthenticatedException even though the
-    // catalog was written successfully and survived a restart, so the entry is
-    // backed by a key bound to a device credential that cannot be satisfied on
-    // the read path. The entry is unreadable either way, so drop it and let the
-    // next write create a fresh key under the current (non-auth) options.
-    if (isKeychainCryptoError(error)) {
-      try {
-        await Keychain.resetGenericPassword({ service: 'documentCatalog' });
-        console.warn(
-          'Dropped unreadable documentCatalog entry; it will be rewritten on next save',
-        );
-      } catch {
-        // best effort — fall through to the normal error handling
-      }
+    // Fork: drop the entry on *any* read failure, not just one we recognise as
+    // a crypto error. Android refuses to decrypt these entries
+    // (UserNotAuthenticatedException in the native logs) but the JS-side error
+    // is not reliably classifiable, so the previous crypto-only check never
+    // fired. A catalog that cannot be read is strictly worse than an empty one:
+    // it blocks every proof request with "No document found" while looking
+    // registered in the UI. Both the catalog and the document payloads are
+    // re-creatable by scanning the ID again, so wiping is the safe direction.
+    try {
+      await Keychain.resetGenericPassword({ service: 'documentCatalog' });
+      console.warn(
+        'Dropped unreadable documentCatalog entry; it will be rewritten on next save',
+      );
+    } catch {
+      // best effort — fall through to the normal error handling
     }
     handleKeychainReadError({
       contextLabel: 'document catalog',
