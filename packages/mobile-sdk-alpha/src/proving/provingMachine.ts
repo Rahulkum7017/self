@@ -1335,6 +1335,20 @@ export const useProvingStore = create<ProvingState>((set, get) => {
             registered: isRegisteredWithLocalCSCA,
             tree_available: treeAvailable,
           });
+          // Fork: record the outcome on the store. Release builds strip console
+          // output, so this is the only way to tell on device whether a disclose
+          // stopped because the tree was unavailable or because the commitment
+          // genuinely is not in it.
+          set({
+            error_code: isRegisteredWithLocalCSCA
+              ? 'LOCAL_CHECK_REGISTERED'
+              : treeAvailable
+                ? 'LOCAL_CHECK_NOT_IN_TREE'
+                : 'LOCAL_CHECK_TREE_UNAVAILABLE',
+            reason: `registered=${String(
+              isRegisteredWithLocalCSCA,
+            )} treeAvailable=${String(treeAvailable)}`,
+          });
           if (isRegisteredWithLocalCSCA) {
             selfClient.logProofEvent('info', 'Validation succeeded', context, {
               duration_ms: Date.now() - startTime,

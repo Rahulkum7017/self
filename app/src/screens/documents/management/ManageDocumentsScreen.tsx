@@ -32,6 +32,7 @@ import useHasRealDocument from '@/hooks/useHasRealDocument';
 import { impactLight } from '@/integrations/haptics';
 import { loadDocumentCatalogDirectlyFromKeychain } from '@/providers/passportDataProvider';
 import { createKeychainOptions } from '@/integrations/keychain';
+import { useProvingStore } from '@selfxyz/mobile-sdk-alpha/stores/provingMachine';
 import type { RootStackParamList } from '@/navigation';
 import { usePassport } from '@/providers/passportDataProvider';
 import { extraYPadding } from '@/utils/styleUtils';
@@ -406,6 +407,18 @@ const ManageDocumentsScreen: React.FC = () => {
   // this file belongs to PassportDataSelector and is not in scope here. Declared
   // before runKeychainDiag so its dependency array is not in the TDZ.
   const selfClientForDiag = useSelfClient();
+  // Fork: release builds strip console output, so the proving store is surfaced
+  // on screen. A disclose attempt that ends in "No document found" has to be
+  // distinguishable from one that was rejected as unregistered, and only the
+  // store knows which state it actually reached. Select fields individually —
+  // returning a fresh object from the selector would re-render forever.
+  const provingState = useProvingStore((s) => s.currentState);
+  const provingCircuit = useProvingStore((s) => s.circuitType);
+  const provingErrorCode = useProvingStore((s) => s.error_code);
+  const provingReason = useProvingStore((s) => s.reason);
+  const provingSummary = `prov:${provingState}/${provingCircuit ?? '-'}/${
+    provingErrorCode ?? '-'
+  }/${String(provingReason ?? '-').slice(0, 60)}`;
   const [kcDiag, setKcDiag] = useState<string>('not run yet');
   const runKeychainDiag = useCallback(async () => {
     const d: string[] = [];
@@ -502,6 +515,9 @@ const ManageDocumentsScreen: React.FC = () => {
             <SecondaryButton onPress={runKeychainDiag}>
               Run keychain diagnostic
             </SecondaryButton>
+            <Text fontSize={10} color={textBlack} opacity={0.85}>
+              {provingSummary}
+            </Text>
             <Text fontSize={10} color={textBlack} opacity={0.85}>
               {kcDiag}
             </Text>
