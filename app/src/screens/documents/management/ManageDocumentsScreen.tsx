@@ -30,6 +30,8 @@ import {
 
 import useHasRealDocument from '@/hooks/useHasRealDocument';
 import { impactLight } from '@/integrations/haptics';
+import { loadDocumentCatalogDirectlyFromKeychain } from '@/providers/passportDataProvider';
+import { createKeychainOptions } from '@/integrations/keychain';
 import type { RootStackParamList } from '@/navigation';
 import { usePassport } from '@/providers/passportDataProvider';
 import { extraYPadding } from '@/utils/styleUtils';
@@ -399,6 +401,50 @@ const PassportDataSelector = () => {
 };
 
 const ManageDocumentsScreen: React.FC = () => {
+  const [kcDiag, setKcDiag] = useState<string>('not run yet');
+  const runKeychainDiag = useCallback(async () => {
+    const out: string[] = [];
+    try {
+      const Keychain = require('react-native-keychain').default;
+      const opts = await createKeychainOptions({ requireAuth: false });
+      out.push('setOptions: ' + JSON.stringify(opts.setOptions));
+      const rawCreds = await Keychain.getGenericPassword({
+        service: 'documentCatalog',
+      });
+      out.push(
+        'raw read: ' +
+          (rawCreds === false
+            ? 'FALSE (no entry)'
+            : 'OK len=' + String(rawCreds?.password?.length))
+      );
+    } catch (e) {
+      const err = e as { name?: string; message?: string; code?: string };
+      out.push(
+        'raw THREW: ' +
+          (err?.name ?? '?') +
+          ' | ' +
+          (err?.code ?? '?') +
+          ' | ' +
+          (err?.message ?? '?')
+      );
+    }
+    try {
+      const cat = await loadDocumentCatalogDirectlyFromKeychain();
+      out.push(
+        'catalog: docs=' +
+          cat?.documents?.length +
+          ' selected=' +
+          String(cat?.selectedDocumentId)
+      );
+      out.push(
+        'registered=' + JSON.stringify(cat?.documents?.map(d => d.isRegistered))
+      );
+    } catch (e) {
+      const err = e as { message?: string };
+      out.push('catalog THREW: ' + String(err?.message));
+    }
+    setKcDiag(out.join('  ||  '));
+  }, []);
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { bottom } = useSafeAreaInsets();
@@ -447,6 +493,12 @@ const ManageDocumentsScreen: React.FC = () => {
               <SecondaryButton onPress={handleViewInfo}>
                 View Document Info
               </SecondaryButton>
+            <SecondaryButton onPress={runKeychainDiag}>
+              Run keychain diagnostic
+            </SecondaryButton>
+            <Text fontSize={10} color={textBlack} opacity={0.85}>
+              {kcDiag}
+            </Text>
             )}
             <SecondaryButton onPress={handleGenerateMock}>
               Generate Mock Document
