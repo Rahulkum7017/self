@@ -408,67 +408,47 @@ const ManageDocumentsScreen: React.FC = () => {
   const selfClientForDiag = useSelfClient();
   const [kcDiag, setKcDiag] = useState<string>('not run yet');
   const runKeychainDiag = useCallback(async () => {
-    const out: string[] = [];
+    const d: string[] = [];
+    try {
+      const opts = await createKeychainOptions({ requireAuth: false });
+      d.push(
+        'opts:' +
+          String(opts.setOptions.accessible).slice(-11) +
+          '/' +
+          String(opts.setOptions.securityLevel).slice(-8) +
+          '/' +
+          String(opts.setOptions.useStrongBox)
+      );
+    } catch {
+      d.push('opts:THREW');
+    }
     try {
       const Keychain = require('react-native-keychain').default;
-      const opts = await createKeychainOptions({ requireAuth: false });
-      out.push('setOptions: ' + JSON.stringify(opts.setOptions));
-      const rawCreds = await Keychain.getGenericPassword({
-        service: 'documentCatalog',
-      });
-      out.push(
-        'raw read: ' +
-          (rawCreds === false
-            ? 'FALSE (no entry)'
-            : 'OK len=' + String(rawCreds?.password?.length))
-      );
+      const rawCreds = await Keychain.getGenericPassword({ service: 'documentCatalog' });
+      d.push('raw:' + (rawCreds === false ? 'NONE' : 'OK' + String(rawCreds?.password?.length)));
     } catch (e) {
-      const err = e as { name?: string; message?: string; code?: string };
-      out.push(
-        'raw THREW: ' +
-          (err?.name ?? '?') +
-          ' | ' +
-          (err?.code ?? '?') +
-          ' | ' +
-          (err?.message ?? '?')
-      );
+      d.push('raw:THREW');
     }
     try {
       const cat = await loadDocumentCatalogDirectlyFromKeychain();
-      out.push(
-        'catalog: docs=' +
-          cat?.documents?.length +
-          ' selected=' +
-          String(cat?.selectedDocumentId)
-      );
-      out.push(
-        'registered=' + JSON.stringify(cat?.documents?.map(d => d.isRegistered))
-      );
-    } catch (e) {
-      const err = e as { message?: string };
-      out.push('catalog THREW: ' + String(err?.message));
+      d.push('appDocs:' + String(cat?.documents?.length) + ' reg:' + String(cat?.documents?.[0]?.isRegistered) + ' sel:' + (cat?.selectedDocumentId ? 'Y' : 'N'));
+    } catch {
+      d.push('appDocs:THREW');
     }
-    // Fork: the app-level adapter read succeeds, yet a proof request still lands
-    // on "No document found", so probe the SDK path the prover actually uses.
-    out.push('sdk: start');
+    d.push('|');
     try {
-      const sdkCatalog = await selfClientForDiag.loadDocumentCatalog();
-      out.push(
-        'sdk catalog: docs=' +
-          String(sdkCatalog?.documents?.length) +
-          ' selected=' +
-          String(sdkCatalog?.selectedDocumentId),
-      );
-      const id = sdkCatalog?.selectedDocumentId;
+      const sc = await selfClientForDiag.loadDocumentCatalog();
+      d.push('sdkDocs:' + String(sc?.documents?.length) + ' sel:' + (sc?.selectedDocumentId ? 'Y' : 'N'));
+      const id = sc?.selectedDocumentId;
       if (id) {
         const byId = await selfClientForDiag.loadDocumentById(id);
-        out.push('sdk loadDocumentById: ' + (byId ? 'OK' : 'NULL'));
+        d.push('sdkDoc:' + (byId ? 'OK' : 'NULL'));
       }
     } catch (e) {
-      const err = e as { message?: string };
-      out.push('sdk THREW: ' + String(err?.message));
+      const er = e as { message?: string };
+      d.push('sdkTHREW:' + String(er?.message).slice(0, 40));
     }
-    setKcDiag(out.join('  ||  '));
+    setKcDiag(d.join(' '));
   }, [selfClientForDiag]);
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
