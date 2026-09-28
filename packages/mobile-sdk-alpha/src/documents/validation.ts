@@ -254,17 +254,17 @@ export function pickBestDocumentToSelect(
   catalog: DocumentCatalog,
   documents: Record<string, { data: IDDocument; metadata: DocumentMetadata }>,
 ): string | undefined {
-  // Fork: require isRegistered in addition to a non-expired document. Without
-  // this an unregistered leftover (e.g. a test mock) could be picked, and the
-  // prover then loaded a document that can never produce a proof, surfacing as
-  // DocumentDataNotFound while a registered document sat unused in the catalog.
+  // Fork: prefer a registered document, but fall back to any non-expired one.
+  // Requiring isRegistered outright was tried and reverted: the flag is a local
+  // cache that can lag the chain, and strict filtering turned a lagging flag
+  // into a dead-end "No document found" instead of letting the prover (and the
+  // verifier) decide.
   const isUsable = (doc: DocumentMetadata): boolean => {
-    if (doc.isRegistered !== true) {
-      return false;
-    }
     const docData = documents[doc.id];
     return isDocumentValidForProving(doc, docData?.data);
   };
+  const isRegisteredAndUsable = (doc: DocumentMetadata): boolean =>
+    doc.isRegistered === true && isUsable(doc);
 
   // Check if currently selected document is valid
   if (catalog.selectedDocumentId) {
@@ -272,12 +272,16 @@ export function pickBestDocumentToSelect(
       (doc) => doc.id === catalog.selectedDocumentId,
     );
 
-    if (selectedMeta && isUsable(selectedMeta)) {
+    if (selectedMeta && isRegisteredAndUsable(selectedMeta)) {
       return catalog.selectedDocumentId;
     }
   }
 
-  // Find first valid document
+  // Prefer a registered document, then fall back to any valid document
+  const firstRegistered = catalog.documents.find(isRegisteredAndUsable);
+  if (firstRegistered) {
+    return firstRegistered.id;
+  }
   const firstValid = catalog.documents.find(isUsable);
 
   return firstValid?.id;

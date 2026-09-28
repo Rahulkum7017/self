@@ -135,17 +135,11 @@ const ProvingScreenRouter: React.FC = () => {
       // Count valid documents up front so we can derive documentType for the
       // selector even when the gate forces us there.
       //
-      // Fork: isDocumentValidForProving only checks expiry, so an unregistered
-      // document (e.g. a mock left over from testing) still counted as valid.
-      // That made validCount 2, which forced the document selector open instead
-      // of auto-selecting, and proving then ran against the wrong document and
-      // ended on DocumentDataNotFound even though a registered Aadhaar was
-      // present. A proof request can only be satisfied by a registered
-      // document, so require isRegistered here as well.
+      // Fork: keep the stock expiry-based counting (requiring isRegistered here
+      // was tried and reverted — the flag is a local cache and strict filtering
+      // turned a lagging flag into a dead-end "No document found"), but prefer
+      // a registered document when deriving the document type.
       const validDocuments = catalog.documents.filter(doc => {
-        if (doc.isRegistered !== true) {
-          return false;
-        }
         const docData = docs[doc.id];
         return isDocumentValidForProving(doc, docData?.data);
       });
@@ -159,7 +153,8 @@ const ProvingScreenRouter: React.FC = () => {
           (catalog.documents ?? []).map(d => ({ id: d.id, isRegistered: d.isRegistered })),
         )}`,
       );
-      const firstValidDoc = validDocuments[0];
+      const firstValidDoc =
+        validDocuments.find(doc => doc.isRegistered === true) ?? validDocuments[0];
       const documentType = getDocumentTypeName(
         firstValidDoc?.documentCategory,
         firstValidDoc?.idType,

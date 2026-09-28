@@ -314,13 +314,13 @@ const provingMachine = createMachine({
         VALIDATION_ERROR: 'error',
         ALREADY_REGISTERED: 'completed',
         PASSPORT_NOT_SUPPORTED: 'passport_not_supported',
-        // Fork override: this fires when the document's nullifier is already
-        // on-chain under a different secret. Treat it like ALREADY_REGISTERED
-        // (go straight to completed) so the flow finishes on the verified screen
-        // instead of demanding the recovery phrase. Ownership is still enforced
-        // by the crypto layer — a mismatched secret yields a commitment that
-        // fails the disclose circuit.
-        ACCOUNT_RECOVERY_CHOICE: 'completed',
+        // Fork note: this fires when the document's nullifier is already on-chain
+        // under a different secret. Routing it to 'completed' was tried and
+        // reverted: it showed a verified screen while the current secret's
+        // commitment was never written on-chain, so every later disclose failed
+        // its commitment lookup. The recovery flow restores the original secret
+        // that owns the registered commitment.
+        ACCOUNT_RECOVERY_CHOICE: 'account_recovery_choice',
         PASSPORT_DATA_NOT_FOUND: 'passport_data_not_found',
       },
     },

@@ -99,10 +99,17 @@ function navigateIfReady<RouteName extends keyof RootStackParamList>(
  * routes to AccountRecoveryChoice, which demands the existing recovery phrase.
  *
  * Both checks are client-side guards, not on-chain constraints, so bypassing
- * them lets the same ID be registered again under a fresh secret. Set to false
- * to restore stock behaviour.
+ * them lets the same ID be registered again under a fresh secret.
+ *
+ * Fork note: forcing this to true created a false "registered" state. The
+ * register screen showed success, but the new secret's commitment was never
+ * written on-chain (the nullifier was already used), so every later disclose
+ * failed its commitment lookup. Keep false: when the nullifier is already
+ * on-chain under a different secret, the account must be recovered with its
+ * original phrase so the original secret — and therefore the registered
+ * commitment — is restored.
  */
-const FORCE_BYPASS_DOCUMENT_REGISTRATION_CHECK = true;
+const FORCE_BYPASS_DOCUMENT_REGISTRATION_CHECK = false;
 
 export const SelfClientProvider = ({ children }: PropsWithChildren) => {
   const config = useMemo(

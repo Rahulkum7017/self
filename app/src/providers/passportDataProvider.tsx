@@ -594,28 +594,7 @@ export async function loadDocumentByIdDirectlyFromKeychain(
     if (documentCreds !== false) {
       return JSON.parse(documentCreds.password);
     }
-
-    // Same `false`-means-unreadable handling as the catalog.
-    try {
-      await Keychain.resetGenericPassword({ service: `document-${documentId}` });
-      console.warn(
-        `Document ${documentId} read as no-entry; dropped so the next save rewrites it`,
-      );
-    } catch {
-      // best effort
-    }
   } catch (error) {
-    // Same reasoning as the catalog: an entry we cannot read is unusable, and
-    // the document is re-creatable by scanning again, so drop it rather than
-    // leaving a poisoned key that fails on every later load.
-    try {
-      await Keychain.resetGenericPassword({ service: `document-${documentId}` });
-      console.warn(
-        `Dropped unreadable document entry ${documentId}; it will be rewritten on next save`,
-      );
-    } catch {
-      // best effort
-    }
     handleKeychainReadError({
       contextLabel: `document ${documentId}`,
       error,
@@ -668,37 +647,7 @@ export async function loadDocumentCatalogDirectlyFromKeychain(): Promise<Documen
 
       return parsed;
     }
-
-    // Fork: react-native-keychain swallows the native keystore failure and
-    // resolves to `false` instead of rejecting, so the catch below never runs
-    // for this case — which is exactly how an unreadable catalog ends up
-    // looking like an empty one. Drop the entry so the next save recreates it
-    // with the current (software-backed, non-auth) options.
-    try {
-      await Keychain.resetGenericPassword({ service: 'documentCatalog' });
-      console.warn(
-        'documentCatalog read as no-entry; dropped so the next save rewrites it',
-      );
-    } catch {
-      // best effort
-    }
   } catch (error) {
-    // Fork: drop the entry on *any* read failure, not just one we recognise as
-    // a crypto error. Android refuses to decrypt these entries
-    // (UserNotAuthenticatedException in the native logs) but the JS-side error
-    // is not reliably classifiable, so the previous crypto-only check never
-    // fired. A catalog that cannot be read is strictly worse than an empty one:
-    // it blocks every proof request with "No document found" while looking
-    // registered in the UI. Both the catalog and the document payloads are
-    // re-creatable by scanning the ID again, so wiping is the safe direction.
-    try {
-      await Keychain.resetGenericPassword({ service: 'documentCatalog' });
-      console.warn(
-        'Dropped unreadable documentCatalog entry; it will be rewritten on next save',
-      );
-    } catch {
-      // best effort — fall through to the normal error handling
-    }
     handleKeychainReadError({
       contextLabel: 'document catalog',
       error,
@@ -980,9 +929,12 @@ export async function reStorePassportDataWithRightCSCA(
   }
 }
 
-// Fork: see the isRegistered note in storeDocumentWithDeduplication. Flipped to
-// false to restore stock behaviour.
-const FORCE_DOCUMENTS_REGISTERED = true;
+// Fork: marking documents registered at store time was tried and reverted. It
+// made the UI show "Verified" for documents whose commitments were never
+// written on-chain, so the claim then failed later with less information. The
+// flag must only be set by markCurrentDocumentAsRegistered after the register
+// proof is accepted.
+const FORCE_DOCUMENTS_REGISTERED = false;
 
 export async function saveDocumentCatalogDirectlyToKeychain(
   catalog: DocumentCatalog,
