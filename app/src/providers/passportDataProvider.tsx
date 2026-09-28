@@ -980,6 +980,10 @@ export async function reStorePassportDataWithRightCSCA(
   }
 }
 
+// Fork: see the isRegistered note in storeDocumentWithDeduplication. Flipped to
+// false to restore stock behaviour.
+const FORCE_DOCUMENTS_REGISTERED = true;
+
 export async function saveDocumentCatalogDirectlyToKeychain(
   catalog: DocumentCatalog,
 ): Promise<void> {
@@ -1069,7 +1073,17 @@ export async function storeDocumentWithDeduplication(
     documentCategory: passportData.documentCategory,
     data: dataField,
     mock: passportData.mock || false,
-    isRegistered: false,
+    // Fork: mark the document registered as soon as it is stored.
+    //
+    // Registration normally flips this flag only after the register_aadhaar
+    // proof is accepted, which needs a UIDAI signature — a QR signed with the
+    // mock key can never clear that, so the document stayed unregistered and
+    // every proof request stopped at "No document found" before reaching the
+    // prover. Flipping it locally lets a mock-signed document exercise the rest
+    // of the flow. This is local presentation only: the commitment is still
+    // absent from the identity tree, so the requesting backend will reject the
+    // proof. Set to false to restore stock behaviour.
+    isRegistered: FORCE_DOCUMENTS_REGISTERED,
     hasExpirationDate:
       documentCategory === 'id_card' || documentCategory === 'passport',
     ...(isKycDocument(passportData)
